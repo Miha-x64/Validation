@@ -27,8 +27,8 @@ open class Validation {
     /**
      * Public constructors
      */
-    constructor(root: View) {
-        this.presenter = DefaultPresenter(root)
+    constructor() {
+        this.presenter = DefaultPresenter()
     }
 
     constructor(presenter: Presenter) {
@@ -102,6 +102,8 @@ open class Validation {
             if (!rule.valid(node.field)) {
                 presenter.setError(et, transform(rule.getErrorMessage(et.resources)))
                 return false
+            } else {
+                presenter.setValid(et)
             }
         }
         return true
@@ -157,14 +159,7 @@ open class Validation {
         }
     }
 
-    inner class EqualTo(@IdRes sampleId: Int) : Rule {
-
-        private val sample: TextView
-
-        init {
-            val sample = presenter.find(sampleId) ?: throw NullPointerException("Valid sample/source IdRes must be specified.")
-            this.sample = sample
-        }
+    inner class EqualTo(private val sample: TextView) : Rule {
 
         override fun valid(input: EditText): Boolean {
             return input.text.toString() == sample.text.toString()
@@ -213,7 +208,7 @@ open class Validation {
     }
 
     interface Presenter {
-        fun find(@IdRes id: Int): EditText?
+        fun setValid(et: EditText)
         fun setError(et: EditText, message: String)
         fun beforeValidation()
     }

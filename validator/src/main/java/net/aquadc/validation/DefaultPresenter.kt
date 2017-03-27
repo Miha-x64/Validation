@@ -1,13 +1,16 @@
 package net.aquadc.validation
 
 import android.support.design.widget.TextInputLayout
-import android.view.View
 import android.widget.EditText
 
 /**
  * Created by miha on 30.08.16
  */
-class DefaultPresenter(root: View) : AbsFlushingPresenter(root) {
+open class DefaultPresenter : AbsFlushingPresenter() {
+
+    override fun setValid(et: EditText) {
+        // no-op
+    }
 
     override fun setError(et: EditText, message: String) {
         var til: TextInputLayout? = null
@@ -25,10 +28,10 @@ class DefaultPresenter(root: View) : AbsFlushingPresenter(root) {
 
         if (til != null) {
             til!!.error = message
-            et.addTextChangedListener(Flusher(activeFlushers, et, til))
+            et.addTextChangedListener(createFlusher(et, til))
         } else {
             et.error = message
-            et.addTextChangedListener(Flusher(activeFlushers, et))
+            et.addTextChangedListener(createFlusher(et, null))
         }
     }
 
