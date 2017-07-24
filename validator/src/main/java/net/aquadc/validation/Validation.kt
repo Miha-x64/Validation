@@ -1,17 +1,11 @@
 package net.aquadc.validation
 
 import android.content.res.Resources
-import android.support.annotation.IdRes
 import android.support.annotation.StringRes
 import android.util.Patterns
-import android.view.View
 import android.widget.EditText
 import android.widget.TextView
-
-import java.util.Arrays
-import java.util.HashMap
-import java.util.LinkedHashMap
-import java.util.LinkedHashSet
+import java.util.*
 
 /**
  * Created by miha on 26.05.16
@@ -38,7 +32,7 @@ open class Validation {
     /**
      * Variant
      */
-    private var transformer: ((String)->String)? = null
+    private var transform: (CharSequence) -> CharSequence = { it }
 
     /**
      * Public API
@@ -69,6 +63,8 @@ open class Validation {
         }
     }
 
+    // todo: fun validate(): Unit? { which is more lightweight }
+
     fun validateAndGet(): Map<EditText, String>? {
         presenter.beforeValidation()
 
@@ -84,14 +80,13 @@ open class Validation {
         return if (error) null else values
     }
 
-    fun setErrorMessageTransformer(transformer: ((String)->String)?) {
-        this.transformer = transformer
+    fun setErrorMessageTransform(transform: (CharSequence) -> CharSequence) {
+        this.transform = transform
     }
 
     /**
      * Validation
      */
-
     private fun validate(node: Node): Boolean {
         for (rule in node.rules) {
             val et = node.field
@@ -99,12 +94,14 @@ open class Validation {
             if (rule.toString() !== Preset.REQUIRED.toString() && et.text.toString().isEmpty()) {
                 continue
             }
-            if (!rule.valid(node.field)) {
-                presenter.setError(et, transform(rule.getErrorMessage(et.resources)))
-                return false
-            } else {
-                presenter.setValid(et)
-            }
+            val result = rule(node.field, et.resources)
+            when (result) {
+                is ValidationResult.Success -> presenter.setValid(et)
+                is ValidationResult.Error -> {
+                    presenter.setError(et, transform(result.message))
+                    return false
+                }
+            }.also {  }
         }
         return true
     }
@@ -112,12 +109,11 @@ open class Validation {
     /**
      * Validators
      */
-
     class RuleWithOwnText : Rule {
 
         private val validationRule: Rule
         @StringRes private val errorMessageRes: Int
-        private var errorMessage: String? = null
+        private var errorMessage: String? = null /* lazy */
 
         constructor(validationRule: Rule, @StringRes errorMessage: Int) {
             this.validationRule = validationRule
@@ -130,12 +126,12 @@ open class Validation {
             this.errorMessage = errorMessage
         }
 
-        override fun valid(input: EditText): Boolean {
-            return validationRule.valid(input)
-        }
-
-        override fun getErrorMessage(res: Resources): String {
-            return errorMessage ?: res.getString(errorMessageRes).also { errorMessage = it }
+        override fun invoke(input: EditText, res: Resources): ValidationResult {
+            val result = validationRule(input, res)
+            return when (result) {
+                is ValidationResult.Success -> ValidationResult.Success
+                is ValidationResult.Error -> ValidationResult.Error(errorMessage ?: res.getString(errorMessageRes).also { errorMessage = it })
+            }
         }
 
         override fun toString(): String {
@@ -146,40 +142,20 @@ open class Validation {
     enum class Preset : Rule {
         REQUIRED, EMAIL;
 
-        override fun valid(input: EditText): Boolean {
+        override fun invoke(input: EditText, res: Resources): ValidationResult {
             val text = input.text.toString()
             when (this) {
-                REQUIRED -> return !text.isEmpty()
-                EMAIL -> return Patterns.EMAIL_ADDRESS.matcher(text).matches()
+                REQUIRED -> return if (text.isEmpty()) ValidationResult.Error("validation failed for $name") else ValidationResult.Success
+                EMAIL -> return if (Patterns.EMAIL_ADDRESS.matcher(text).matches()) ValidationResult.Success else ValidationResult.Error("validation failed for $name")
             }
-        }
-
-        override fun getErrorMessage(res: Resources): String {
-            return "validation failed for " + name
         }
     }
 
     inner class EqualTo(private val sample: TextView) : Rule {
 
-        override fun valid(input: EditText): Boolean {
-            return input.text.toString() == sample.text.toString()
-        }
-
-        override fun getErrorMessage(res: Resources): String {
-            return "values must be equal"
-        }
-    }
-
-    interface Rule {
-        fun valid(input: EditText): Boolean
-        fun getErrorMessage(res: Resources): String
-    }
-
-    /**
-     * Error message transformation
-     */
-    private fun transform(initial: String): String {
-        return transformer?.invoke(initial) ?: initial
+        override fun invoke(input: EditText, res: Resources): ValidationResult =
+                if (input.text.toString() == sample.text.toString()) ValidationResult.Success
+                else ValidationResult.Error("values must be equal")
     }
 
     /**
@@ -209,7 +185,7 @@ open class Validation {
 
     interface Presenter {
         fun setValid(et: EditText)
-        fun setError(et: EditText, message: String)
+        fun setError(et: EditText, message: CharSequence)
         fun beforeValidation()
     }
 }

@@ -27,7 +27,7 @@ class SingleErrorViewPresenter : AbsFlushingPresenter {
         // no-op
     }
 
-    override fun setError(et: EditText, message: String) {
+    override fun setError(et: EditText, message: CharSequence) {
         if (!hasError) {
             output.text = message
             hasError = true

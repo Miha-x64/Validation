@@ -12,7 +12,7 @@ open class DefaultPresenter : AbsFlushingPresenter() {
         // no-op
     }
 
-    override fun setError(et: EditText, message: String) {
+    override fun setError(et: EditText, message: CharSequence) {
         var til: TextInputLayout? = null
         run {
             var parent = et.parent

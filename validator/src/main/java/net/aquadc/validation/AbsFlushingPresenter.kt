@@ -1,13 +1,10 @@
 package net.aquadc.validation
 
-import android.support.annotation.IdRes
 import android.support.design.widget.TextInputLayout
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.View
 import android.widget.EditText
-
-import java.util.ArrayList
+import java.util.*
 
 /**
  * Created by miha on 30.08.16
