@@ -126,7 +126,7 @@ open class Validation {
             this.errorMessage = errorMessage
         }
 
-        override fun invoke(input: EditText, res: Resources): ValidationResult {
+        override fun invoke(input: EditText, res: Resources): ValidationResult<*> {
             val result = validationRule(input, res)
             return when (result) {
                 is ValidationResult.Success -> ValidationResult.Success
@@ -142,7 +142,7 @@ open class Validation {
     enum class Preset : Rule {
         REQUIRED, EMAIL;
 
-        override fun invoke(input: EditText, res: Resources): ValidationResult {
+        override fun invoke(input: EditText, res: Resources): ValidationResult<*> {
             val text = input.text.toString()
             when (this) {
                 REQUIRED -> return if (text.isEmpty()) ValidationResult.Error("validation failed for $name") else ValidationResult.Success
@@ -153,7 +153,7 @@ open class Validation {
 
     inner class EqualTo(private val sample: TextView) : Rule {
 
-        override fun invoke(input: EditText, res: Resources): ValidationResult =
+        override fun invoke(input: EditText, res: Resources): ValidationResult<*> =
                 if (input.text.toString() == sample.text.toString()) ValidationResult.Success
                 else ValidationResult.Error("values must be equal")
     }
