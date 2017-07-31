@@ -10,5 +10,5 @@ sealed class ValidationResult {
 
     open class Error(
             open val message: CharSequence
-    ) : ValidationResult()
+    ) : ValidationResult() // todo: parameterize it, allow Payload
 }
