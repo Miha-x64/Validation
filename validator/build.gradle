@@ -29,3 +29,27 @@ dependencies {
     compile 'com.android.support:design:25.3.0'
     testCompile 'junit:junit:4.12'
 }
+
+
+
+
+
+// https://stackoverflow.com/a/35431416
+task _deleteJar(type: Delete) {
+    delete 'libs/jars/validator.jar'
+}
+
+task _createJar(type: Copy) {
+    from('build/intermediates/bundles/default/')
+    into('build/libs/')
+    include('classes.jar')
+    rename('classes.jar', 'validator.jar')
+}
+
+_createJar.dependsOn(_deleteJar, build)
+
+// https://stackoverflow.com/a/28969412/3050249
+task _jarSources(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
