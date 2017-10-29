@@ -16,7 +16,7 @@ open class Validation {
      * Invariant
      */
     private val fieldsAndRules = LinkedHashMap<EditText, Node>()
-    internal val presenter: Presenter
+    private val presenter: Presenter
 
     /**
      * Public constructors
@@ -63,21 +63,27 @@ open class Validation {
         }
     }
 
-    // todo: fun validate(): Unit? { which is more lightweight }
-
     fun validateAndGet(): Map<EditText, String>? {
         presenter.beforeValidation()
 
         val values = HashMap<EditText, String>()
         var error = false
-        for ((key, value) in fieldsAndRules) {
-            if (validate(value) && !error) {
+        fieldsAndRules.forEach { (key, value) ->
+            if (isValid(value) && !error) {
                 values.put(key, value.field.text.toString())
             } else {
                 error = true
             }
         }
         return if (error) null else values
+    }
+
+    fun isValid(): Boolean {
+        presenter.beforeValidation()
+
+        // not using 'all' and invoking 'isValid' first
+        // because need to check each field and reflect results on presentation
+        return fieldsAndRules.values.fold(true) { acc, it -> isValid(it) && acc }
     }
 
     fun setErrorMessageTransform(transform: (CharSequence) -> CharSequence) {
@@ -87,23 +93,28 @@ open class Validation {
     /**
      * Validation
      */
-    private fun validate(node: Node): Boolean {
+    private fun isValid(node: Node): Boolean {
+        var error: ValidationResult.Error<*>? = null
+        val et = node.field
         for (rule in node.rules) {
-            val et = node.field
-            // if field is not required & empty
             if (rule.toString() !== Preset.REQUIRED.toString() && et.text.toString().isEmpty()) {
                 continue
             }
+
             val result = rule(node.field, et.resources)
             when (result) {
-                is ValidationResult.Success -> presenter.setValid(et)
-                is ValidationResult.Error -> {
-                    presenter.setError(et, transform(result.message))
-                    return false
-                }
-            }.also {  }
+                is ValidationResult.Success -> { }
+                is ValidationResult.Error -> error = result
+            }.also { }
         }
-        return true
+
+        return if (error == null) {
+            presenter.setValid(et)
+            true
+        } else {
+            presenter.setError(et, transform(error.message))
+            false
+        }
     }
 
     /**
