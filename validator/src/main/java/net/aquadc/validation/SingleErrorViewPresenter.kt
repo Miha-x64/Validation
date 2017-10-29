@@ -13,21 +13,25 @@ class SingleErrorViewPresenter : AbsFlushingPresenter {
 
     private val output: TextView
 
-    constructor(root: View, output: TextView) : super(root) {
+    constructor(root: View, output: TextView) : super() {
         this.output = output
     }
 
-    constructor(root: View, @IdRes output: Int) : super(root) {
+    constructor(root: View, @IdRes output: Int) : super() {
         this.output = root.findViewById(output) as TextView
     }
 
     private var hasError: Boolean = false
 
-    override fun setError(et: EditText, message: String) {
+    override fun setValid(et: EditText) {
+        // no-op
+    }
+
+    override fun setError(et: EditText, message: CharSequence) {
         if (!hasError) {
             output.text = message
             hasError = true
-            et.addTextChangedListener(Flusher(activeFlushers, et))
+            et.addTextChangedListener(createFlusher(et, null))
         }
     }
 

@@ -1,24 +1,17 @@
 package net.aquadc.validation
 
-import android.support.annotation.IdRes
 import android.support.design.widget.TextInputLayout
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.View
 import android.widget.EditText
-
-import java.util.ArrayList
+import java.util.*
 
 /**
  * Created by miha on 30.08.16
  */
-abstract class AbsFlushingPresenter(protected val root: View) : Validation.Presenter {
+abstract class AbsFlushingPresenter : Validation.Presenter {
 
     protected val activeFlushers: MutableList<Flusher> = ArrayList()
-
-    override fun find(@IdRes id: Int): EditText {
-        return root.findViewById(id) as EditText
-    }
 
     override fun beforeValidation() {
         // remove old error message flushers
@@ -33,10 +26,11 @@ abstract class AbsFlushingPresenter(protected val root: View) : Validation.Prese
 
     protected abstract fun clearErrors(et: EditText, til: TextInputLayout?)
 
-    protected inner class Flusher @JvmOverloads constructor(
-            private val activeFlushers: MutableList<Flusher>,
-            private val et: EditText,
-            private val til: TextInputLayout? = null
+    protected open fun createFlusher(et: EditText, til: TextInputLayout?) = Flusher(et, til)
+
+    protected open inner class Flusher constructor(
+            protected val et: EditText,
+            protected val til: TextInputLayout?
     ) : TextWatcher, Runnable {
 
         init {
