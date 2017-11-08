@@ -11,33 +11,13 @@ import java.util.*
 /**
  * Created by miha on 26.05.16
  */
-open class Validation {
+class Validation(
+        private val presenter: Presenter = DefaultPresenter(),
+        private val transform: (CharSequence) -> CharSequence = { it }
+) {
 
-    /**
-     * Invariant
-     */
     private val fieldsAndRules = LinkedHashMap<EditText, Node>()
-    private val presenter: Presenter
 
-    /**
-     * Public constructors
-     */
-    constructor() {
-        this.presenter = DefaultPresenter()
-    }
-
-    constructor(presenter: Presenter) {
-        this.presenter = presenter
-    }
-
-    /**
-     * Variant
-     */
-    private var transform: (CharSequence) -> CharSequence = { it }
-
-    /**
-     * Public API
-     */
     fun add(field: EditText) {
         var node: Node? = fieldsAndRules[field]
         if (node == null) {
@@ -101,10 +81,6 @@ open class Validation {
     fun isValid(): Boolean {
         val error = fieldsAndRules.values.any { getError(it) != null }
         return !error
-    }
-
-    fun setErrorMessageTransform(transform: (CharSequence) -> CharSequence) {
-        this.transform = transform
     }
 
     private fun validate(node: Node): Boolean {
@@ -175,9 +151,9 @@ open class Validation {
 
         override fun invoke(input: EditText, res: Resources): ValidationResult<*> {
             val text = input.text.toString()
-            when (this) {
-                REQUIRED -> return if (text.isEmpty()) ValidationResult.Error("validation failed for $name") else ValidationResult.Success
-                EMAIL -> return if (Patterns.EMAIL_ADDRESS.matcher(text).matches()) ValidationResult.Success else ValidationResult.Error("validation failed for $name")
+            return when (this) {
+                REQUIRED -> if (text.isEmpty()) ValidationResult.Error("validation failed for $name") else ValidationResult.Success
+                EMAIL -> if (Patterns.EMAIL_ADDRESS.matcher(text).matches()) ValidationResult.Success else ValidationResult.Error("validation failed for $name")
             }
         }
     }
@@ -189,7 +165,7 @@ open class Validation {
                 else ValidationResult.Error("values must be equal")
     }
 
-    protected class Node(val field: EditText, vararg rules: Rule) {
+    private class Node(val field: EditText, vararg rules: Rule) {
         val rules: MutableSet<Rule>
 
         init {
