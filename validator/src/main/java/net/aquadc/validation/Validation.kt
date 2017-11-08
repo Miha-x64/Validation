@@ -2,6 +2,7 @@ package net.aquadc.validation
 
 import android.content.res.Resources
 import android.support.annotation.StringRes
+import android.support.v4.util.ArrayMap
 import android.util.Patterns
 import android.widget.EditText
 import android.widget.TextView
@@ -63,37 +64,62 @@ open class Validation {
         }
     }
 
+    /**
+     * Validates all fields. Sets errors if necessary
+     * @return mapping of EditText to values, or null, if invalid
+     */
     fun validateAndGet(): Map<EditText, String>? {
         presenter.beforeValidation()
 
-        val values = HashMap<EditText, String>()
+        val values = ArrayMap<EditText, String>(fieldsAndRules.size)
         var error = false
         fieldsAndRules.forEach { (key, value) ->
-            if (isValid(value) && !error) {
+            if (validate(value) && !error)
                 values.put(key, value.field.text.toString())
-            } else {
+            else
                 error = true
-            }
         }
         return if (error) null else values
     }
 
-    fun isValid(): Boolean {
+    /**
+     * Validates all fields. Sets errors if necessary
+     * @return `true` if everything is valid, `false` otherwise
+     */
+    fun validate(): Boolean {
         presenter.beforeValidation()
 
-        // not using 'all' and invoking 'isValid' first
+        // not using 'all' and invoking 'validate' first
         // because need to check each field and reflect results on presentation
-        return fieldsAndRules.values.fold(true) { acc, it -> isValid(it) && acc }
+        return fieldsAndRules.values.fold(true) { acc, it -> validate(it) && acc }
+    }
+
+    /**
+     * Validates all fields without any visual side-effects
+     * @return `true` if everything is valid, `false` otherwise
+     */
+    fun isValid(): Boolean {
+        val error = fieldsAndRules.values.any { getError(it) != null }
+        return !error
     }
 
     fun setErrorMessageTransform(transform: (CharSequence) -> CharSequence) {
         this.transform = transform
     }
 
-    /**
-     * Validation
-     */
-    private fun isValid(node: Node): Boolean {
+    private fun validate(node: Node): Boolean {
+        val error = getError(node)
+
+        return if (error == null) {
+            presenter.setValid(node.field)
+            true
+        } else {
+            presenter.setError(node.field, transform(error.message))
+            false
+        }
+    }
+
+    private fun getError(node: Node): ValidationResult.Error<*>? {
         var error: ValidationResult.Error<*>? = null
         val et = node.field
         for (rule in node.rules) {
@@ -108,13 +134,7 @@ open class Validation {
             }.also { }
         }
 
-        return if (error == null) {
-            presenter.setValid(et)
-            true
-        } else {
-            presenter.setError(et, transform(error.message))
-            false
-        }
+        return error
     }
 
     /**
@@ -168,10 +188,6 @@ open class Validation {
                 if (input.text.toString() == sample.text.toString()) ValidationResult.Success
                 else ValidationResult.Error("values must be equal")
     }
-
-    /**
-     * Internal
-     */
 
     protected class Node(val field: EditText, vararg rules: Rule) {
         val rules: MutableSet<Rule>
