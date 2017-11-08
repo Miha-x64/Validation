@@ -75,6 +75,17 @@ class Validation(
     }
 
     /**
+     * Validates specified field. Sets error if necessary
+     * @return `true` if field value is valid, `false` otherwise
+     */
+    fun validate(et: EditText): Boolean {
+        val node = fieldsAndRules[et]
+                ?: throw IllegalArgumentException("specified view $et was not registered for validation, got only $fieldsAndRules")
+
+        return validate(node)
+    }
+
+    /**
      * Validates all fields without any visual side-effects
      * @return `true` if everything is valid, `false` otherwise
      */
